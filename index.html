@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Recipe Library</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recipes">
+<meta name="theme-color" content="#181512">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1 id="pageTitle">Recipe Library</h1>
+  <div class="top-actions">
+    <div id="syncStatus"><span class="dot"></span><span id="syncStatusText">—</span></div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙︎</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="tab-row" id="mainTabs">
+    <button type="button" class="tab-btn" data-tab="library">Library</button>
+    <button type="button" class="tab-btn" data-tab="favorites">Favorites</button>
+    <button type="button" class="tab-btn" data-tab="add">+ Add</button>
+  </div>
+
+  <!-- LIBRARY (home) -->
+  <section id="view-library">
+    <div class="field">
+      <input type="text" id="librarySearch" placeholder="Search recipes, ingredients, tags…" autocomplete="off">
+    </div>
+
+    <div id="librarySearchResults" hidden></div>
+
+    <div id="libraryBrowse">
+      <div id="recentlyAddedBlock" hidden>
+        <h3 class="section-label">Recently Added</h3>
+        <div id="recentlyAddedList"></div>
+      </div>
+
+      <button type="button" class="card tappable all-recipes-card" id="allRecipesBtn">
+        <div class="card-title">All Recipes</div>
+        <div class="card-sub" id="allRecipesCount"></div>
+      </button>
+
+      <button type="button" class="card tappable random-recipe-card" id="randomRecipeBtn">
+        <div class="card-title">🎲 What should I make?</div>
+        <div class="card-sub">Pick a random recipe</div>
+      </button>
+
+      <h3 class="section-label">Categories</h3>
+      <div id="categoryList"></div>
+    </div>
+  </section>
+
+  <!-- FAVORITES -->
+  <section id="view-favorites" hidden>
+    <div id="favoritesList"></div>
+  </section>
+
+  <!-- GENERIC RECIPE LIST (category browse / all recipes) -->
+  <section id="view-recipe-list" hidden>
+    <button type="button" class="btn small" id="backFromRecipeList">‹ Back</button>
+    <h2 id="recipeListTitle" style="margin-top:14px;"></h2>
+    <div id="recipeListContent" style="margin-top:12px;"></div>
+  </section>
+
+  <!-- RECIPE DETAIL -->
+  <section id="view-recipe-detail" hidden>
+    <button type="button" class="btn small" id="backFromDetail">‹ Back</button>
+    <div id="detailContent" style="margin-top:12px;"></div>
+  </section>
+
+  <!-- ADD (chooser) -->
+  <section id="view-add" hidden>
+    <h2 style="margin-top:4px;">Add a Recipe</h2>
+    <button type="button" class="card tappable add-option-card" id="addFromLinkBtn">
+      <div class="card-title">🔗 From Link</div>
+      <div class="card-sub">Paste a URL and import automatically</div>
+    </button>
+    <button type="button" class="card tappable add-option-card" id="addFromPasteBtn">
+      <div class="card-title">📋 Paste Text</div>
+      <div class="card-sub">From a screenshot you've OCR'd/copied</div>
+    </button>
+    <button type="button" class="card tappable add-option-card" id="addManualBtn">
+      <div class="card-title">✍️ Enter Manually</div>
+      <div class="card-sub">Type in your own recipe</div>
+    </button>
+  </section>
+
+  <!-- ADD: FROM LINK -->
+  <section id="view-add-link" hidden>
+    <button type="button" class="btn small" id="backFromAddLink">‹ Back</button>
+    <h2 style="margin-top:14px;">Import from Link</h2>
+    <div class="field" style="margin-top:14px;">
+      <label for="importUrlInput">Recipe URL</label>
+      <input type="url" id="importUrlInput" placeholder="https://example.com/recipe" autocomplete="off" inputmode="url">
+    </div>
+    <button type="button" class="btn primary block" id="importUrlBtn">Import</button>
+    <div id="importUrlStatus" class="hint" style="margin-top:12px;"></div>
+  </section>
+
+  <!-- ADD: PASTE TEXT -->
+  <section id="view-add-paste" hidden>
+    <button type="button" class="btn small" id="backFromAddPaste">‹ Back</button>
+    <h2 style="margin-top:14px;">Paste Recipe Text</h2>
+    <p class="hint" style="margin-bottom:12px;">
+      On your phone: long-press the screenshot → Select text / Live Text (iPhone) or use Google Lens (Android) → Copy.
+      Paste everything below — if you have multiple screenshots of the same recipe, paste them all here in order.
+    </p>
+    <div class="field">
+      <textarea id="pasteTextInput" rows="12" placeholder="Paste the recipe text here…"></textarea>
+    </div>
+    <button type="button" class="btn primary block" id="parsePasteBtn">Parse Recipe</button>
+  </section>
+
+  <!-- SHARED EDITOR (manual entry / import preview / edit existing) -->
+  <section id="view-editor" hidden>
+    <button type="button" class="btn small" id="backFromEditor">‹ Back</button>
+    <h2 id="editorTitle" style="margin-top:14px;"></h2>
+    <div id="editorExtractionNote" class="hint" hidden style="margin-bottom:10px;"></div>
+
+    <div class="field">
+      <label for="editName">Recipe Name</label>
+      <input type="text" id="editName" placeholder="Recipe name">
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="editCategory">Category</label>
+        <select id="editCategory"></select>
+      </div>
+      <div class="field">
+        <label for="editServings">Servings</label>
+        <input type="text" id="editServings" placeholder="e.g. 4">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="editTagInput">Tags (optional)</label>
+      <div class="chip-row" id="editTagChips"></div>
+      <input type="text" id="editTagInput" placeholder="Type a tag and press Enter" autocomplete="off">
+      <div class="chip-row" id="editTagSuggestions"></div>
+    </div>
+
+    <h3 class="section-label">Ingredients</h3>
+    <div id="editIngredientsList"></div>
+    <button type="button" class="btn small" id="addIngredientBtn">+ Add Ingredient</button>
+
+    <h3 class="section-label">Instructions</h3>
+    <div id="editInstructionsList"></div>
+    <button type="button" class="btn small" id="addInstructionBtn">+ Add Step</button>
+
+    <div class="field" style="margin-top:18px;">
+      <label for="editNotes">Notes (optional)</label>
+      <textarea id="editNotes" rows="3" placeholder="Personal notes…"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="editSourceUrl">Source URL (optional)</label>
+      <input type="url" id="editSourceUrl" placeholder="https://…" inputmode="url">
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="editFavorite">
+      <span>Favorite</span>
+    </label>
+
+    <div class="divider"></div>
+    <button type="button" class="btn primary block" id="saveRecipeBtn">Save Recipe</button>
+    <button type="button" class="btn block" id="cancelEditorBtn" style="margin-top:10px;">Cancel</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" hidden>
+    <button type="button" class="btn small" id="backFromSettings">‹ Back</button>
+
+    <div class="settings-block" style="margin-top:16px;">
+      <h3>GitHub Sync</h3>
+      <div class="field">
+        <label for="ghUser">GitHub username</label>
+        <input type="text" id="ghUser" placeholder="e.g. crblk99">
+      </div>
+      <div class="field">
+        <label for="ghRepo">Data repo name</label>
+        <input type="text" id="ghRepo" placeholder="e.g. recipe-data">
+      </div>
+      <div class="field">
+        <label for="ghBranch">Branch</label>
+        <input type="text" id="ghBranch" placeholder="main">
+      </div>
+      <div class="field">
+        <label for="ghToken">Personal access token</label>
+        <input type="text" id="ghToken" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <p class="hint">Fine-grained token, scoped only to the data repo above, with Contents: Read and write permission. Stored only in this browser — never sent anywhere but api.github.com.</p>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="saveSettingsBtn">Save</button>
+        <button type="button" class="btn" id="syncNowBtn">Sync Now</button>
+      </div>
+      <p class="hint" id="settingsStatus"></p>
+    </div>
+
+    <div class="settings-block">
+      <h3>Backup</h3>
+      <button type="button" class="btn block" id="exportBtn">Export JSON</button>
+      <p class="hint">Downloads a copy of all your recipes as a file, as a manual safety net.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- Generic modal for duplicate warnings / choices -->
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal-box">
+    <p id="modalMessage"></p>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script src="storage.js"></script>
+<script src="parser.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
