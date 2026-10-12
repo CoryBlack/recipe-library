@@ -96,14 +96,14 @@ function suggestTags(name, ingredients) {
 // =====================================================================
 // URL import — JSON-LD first, heuristic HTML fallback
 // =====================================================================
-// corsproxy.io now requires a paid API key, so it's not usable here — allorigins and
-// codetabs are both free, keyless proxies as of this writing. Free public proxies can be
-// flaky or rate-limited, and some sites block scraper traffic outright regardless of which
-// proxy is used — that's why there are two fallbacks, and why Paste Text / Enter Manually
-// exist as a backstop when neither works.
+// Our own serverless function (api/fetch-recipe.js) does the actual fetch — free public
+// CORS proxies proved too unreliable in practice (rate-limited, down, or quietly switched
+// to requiring a paid key). One public proxy is kept as a last-resort fallback only in
+// case our own function has an outage; Paste Text / Enter Manually remain the backstop
+// if neither works (some sites block automated fetching outright regardless of origin).
 const CORS_PROXIES = [
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+  url => `/api/fetch-recipe?url=${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
 ];
 
 async function fetchHtmlViaProxies(url, timeoutMs = 18000) {

@@ -1,7 +1,7 @@
 // Bump this on every deploy that touches a cached file — changing this string changes
 // the byte content of sw.js itself, which is what makes the browser notice there's a
 // new service worker to install (comparing cached shell contents alone doesn't).
-const CACHE = 'recipe-shell-v1';
+const CACHE = 'recipe-shell-v2';
 const SHELL = [
   './',
   './index.html',
@@ -30,9 +30,11 @@ self.addEventListener('activate', event => {
 // and only fall back to the cached copy if the network request fails (i.e. offline).
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  // Never cache GitHub API or CORS-proxy calls — always go to network so data stays fresh.
+  // Never cache GitHub API, the recipe-fetch function, or other cross-origin calls —
+  // always go to network so data stays fresh.
   if (url.hostname === 'api.github.com') return;
   if (url.hostname !== self.location.hostname) return;
+  if (url.pathname.startsWith('/api/')) return;
   if (event.request.method !== 'GET') return;
 
   event.respondWith(

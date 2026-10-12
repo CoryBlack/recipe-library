@@ -1,19 +1,24 @@
 # Recipe Library
 
 A personal recipe library: import recipes from a URL, from pasted screenshot text, or type
-them in by hand — every recipe ends up in the same clean, structured format. No backend, no
-App Store — it's a static web app you install to your phone's home screen (PWA), and it
-stores your data in a private GitHub repo via the GitHub API.
+them in by hand — every recipe ends up in the same clean, structured format. It's a web app
+you install to your phone's home screen (PWA), hosted on Vercel's free tier, and it stores
+your data in a private GitHub repo via the GitHub API.
 
-Everything here is free: no AI API, no server, no accounts beyond GitHub.
+Everything here is free: no AI API, no paid proxy, just a Vercel account (free, no credit
+card required) in addition to GitHub.
 
 ## How importing works
 
-- **From Link** — paste a recipe URL. The app fetches the page (through a public CORS proxy,
-  since browsers can't fetch arbitrary third-party sites directly) and looks for the
-  structured `Recipe` data (JSON-LD/Schema.org) that most real recipe sites embed for Google's
-  search rich-snippets. If that's missing, it falls back to best-effort HTML parsing
-  (ingredient/instruction headings, common class names, microdata).
+- **From Link** — paste a recipe URL. A small serverless function in this repo
+  (`api/fetch-recipe.js`) fetches the page server-side (browsers can't fetch arbitrary
+  third-party sites directly due to CORS) and the app looks for the structured `Recipe` data
+  (JSON-LD/Schema.org) that most real recipe sites embed for Google's search rich-snippets.
+  If that's missing, it falls back to best-effort HTML parsing (ingredient/instruction
+  headings, common class names, microdata). This function needs no API key or secret — it
+  just forwards the fetch. An earlier version of this app relied on free public CORS proxies
+  instead, but they proved unreliable (rate-limited, down, or quietly switched to requiring a
+  paid key) — this first-party function replaced them for reliability.
 - **Paste Text** — for a screenshot or photo: use your phone's built-in text recognition
   (iPhone: long-press the photo → Select Text / Live Text → Copy; Android: Google Lens) to
   copy the recipe text, then paste it in. The app splits it into title/ingredients/
@@ -28,7 +33,7 @@ automatic parsing will never be perfect.
 ## How storage works
 
 - Your recipes live in `data.json` inside a **private** GitHub repo you create (kept separate
-  from this app's code repo, which has to stay public for free GitHub Pages).
+  from this app's code repo).
 - The app talks to that repo directly from your phone's browser using a **fine-grained
   personal access token** scoped only to that one repo. The token is stored only in the
   browser's local storage — it's never sent anywhere except `api.github.com`.
@@ -38,13 +43,12 @@ automatic parsing will never be perfect.
 
 ## One-time setup
 
-### 1. Create two repos on GitHub
+### 1. Create the data repo on GitHub
 
-- **App repo** (public) — e.g. `recipe-library`. This hosts the app itself via GitHub Pages.
-- **Data repo** (private) — e.g. `recipe-data`. This holds nothing but your `data.json`; the
-  app creates that file automatically on first sync.
+**Data repo** (private) — e.g. `recipe-data`. This holds nothing but your `data.json`; the
+app creates that file automatically on first sync.
 
-### 2. Push this code to the app repo, enable Pages
+### 2. Push this code to GitHub, connect it to Vercel
 
 ```bash
 cd RecipeLibrary
@@ -56,8 +60,11 @@ git remote add origin https://github.com/<you>/recipe-library.git
 git push -u origin main
 ```
 
-Then in the app repo on GitHub: **Settings → Pages → Source: Deploy from branch → main → /(root)**.
-Your app will be live at `https://<you>.github.io/recipe-library/` within a minute or two.
+Then at [vercel.com](https://vercel.com): sign up/log in with GitHub (free, no credit card) →
+**Add New → Project** → select your `recipe-library` repo → **Deploy**. No configuration or
+environment variables needed — Vercel auto-detects the static files and the `api/` function.
+Your app will be live at a `https://recipe-library-<something>.vercel.app` URL within a
+minute. Every push to `main` redeploys automatically from then on.
 
 ### 3. Create a fine-grained personal access token
 
@@ -71,7 +78,7 @@ Go to **GitHub → Settings → Developer settings → Personal access tokens �
 
 ### 4. Install the app on your phone
 
-Open the Pages URL in Safari/Chrome → Share → **Add to Home Screen**. It'll launch
+Open the Vercel URL in Safari/Chrome → Share → **Add to Home Screen**. It'll launch
 full-screen, no browser UI, like a real app.
 
 ### 5. Connect it to your data repo
@@ -114,9 +121,11 @@ Nothing is ever auto-merged or auto-deleted.
 
 ## Notes / limitations
 
-- This is intentionally single-user and low-ceremony — no accounts, no server, no AI.
-- URL parsing depends on a free public CORS proxy being reachable; if one is down the app
-  tries a second one automatically. If both fail, use Paste Text or Enter Manually instead.
+- This is intentionally single-user and low-ceremony — no accounts beyond GitHub + Vercel,
+  no AI.
+- Some sites block automated fetching outright (bot detection), regardless of where the
+  request comes from — if From Link fails, copy the recipe text from the page yourself and
+  use Paste Text instead; that parser works on any text, not just screenshots.
 - The "Paste Text" parser is heuristic (pattern-based, not AI) — it handles common formats
   well (bulleted ingredients, numbered steps, clear headings) but isn't perfect. That's what
   the preview/edit screen is for.
